@@ -1,0 +1,87 @@
+const express = require("express");
+const cors = require("cors");
+const userRoutes = require("./routes/users");
+require("dotenv").config();
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+app.use("/api/users", userRoutes);
+
+app.get("/", (req, res) => {
+  res.send("SafeBet API is running.");
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+const { Pool } = require("pg");
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
+});
+
+module.exports = pool;
+const express = require("express");
+const jwt = require("jsonwebtoken");
+const pool = require("../db");
+require("dotenv").config();
+
+const router = express.Router();
+
+// Example: Register a new user
+router.post("/register", async (req, res) => {
+  const { email, password } = req.body;
+
+  const result = await pool.query(
+    "INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id, email",
+    [email, password]
+  );
+
+  const user = result.rows[0];
+  const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET);
+  res.json({ token, user });
+});
+
+// Example: Login user
+router.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  const result = await pool.query(
+    "SELECT id, email FROM users WHERE email = $1 AND password = $2",
+    [email, password]
+  );
+  const user = result.rows[0];
+  if (!user) return res.status(401).json({ error: "Invalid credentials" });
+
+  const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET);
+  res.json({ token, user });
+});
+
+module.exports = router;
+PORT=5000
+DATABASE_URL=<your_neon_postgres_connection_string>
+JWT_SECRET=<your_secret_here>
+{
+  "name": "safebet-backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.3"
+  }
+}
+git add .
+git commit -m "Add SafeBet backend structure"
+git push
